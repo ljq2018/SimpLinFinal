@@ -1,0 +1,17 @@
+Package: SimpLinFinal
+Type: Package
+Title: Simple Linear Regression
+Version: 0.1.0
+Author: Lauren Quesada
+Maintainer: lauren.quesada@colostate.edu
+Description: Takes vector inputs and performs simple linear regression.
+    Output is estimated regression coefficients, $\hat{\beta_1}$ and $\hat{\beta_0}$,
+    their corresponding standard errors and 95% confidence intervals,
+    residuals, and predicted values as a list.
+License: 
+Encoding: UTF-8
+LazyData: true
+Suggests: devtools,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

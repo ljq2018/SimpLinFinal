@@ -1,0 +1,24 @@
+---
+title: "SimpLin-vignette"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SimpLin-vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+The SimpLin function will take in numeric vectors $x$ and $y$ of the same length and perform simple linear regression. Output is estimated regression coefficients, $\hat{\beta_1}$ and $\hat{\beta_0}$, their corresponding standard errors and 95% confidence intervals, residuals, and predicted values as a list.
+```{r setup}
+library(Rcpp)
+library(RcppArmadillo)
+x<- rnorm(100)
+y <- rnorm(100)
+
+SimpLin(x,y)
+```

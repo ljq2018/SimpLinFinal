@@ -1,0 +1,243 @@
+---
+title: "STAT600_HW1_Quesada"
+author: "Lauren Quesada"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(foreach)
+library(doParallel)
+library(dplyr)
+library(kableExtra)
+library(stringr)
+library(tibble)
+```
+
+# 2.
+
+My parallelization isn't working and I'm not sure why. I just took the first runtime as my value.
+```{r, Q2}
+numcores <- detectCores()
+
+registerDoParallel(numcores -1)
+
+runtime_lm <- c()
+
+output_lm <- foreach(reps = 1:100, combine = "rbind") %dopar%
+  {
+  
+  beg_lm <- Sys.time()
+  
+  x <- rnorm(100)
+  y <- 1 - x + rnorm(100)
+  
+  lm_data <- lm(y~x)
+  
+  end_lm <- Sys.time()
+  
+  diff <- end_lm-beg_lm
+  runtime_lm <- c(runtime_lm,diff[[1]])
+  
+  return(runtime_lm)
+}
+
+avg_run_lm <-mean(output_lm[[1]])
+
+stopImplicitCluster()
+
+
+numcores <- detectCores()
+
+registerDoParallel(numcores -1)
+
+runtime_sl <- c()
+
+output_sl <- foreach(reps = 1:100, combine ="c") %dopar%
+  {
+  
+  beg_sl <- Sys.time()
+  
+  x <- rnorm(100)
+  y <- 1 - x + rnorm(100)
+  
+  SimpLin_data <- SimpLin(x,y)
+  
+  end_sl <- Sys.time()
+  diff <- end_sl-beg_sl
+  runtime_sl <- c(runtime_sl,diff[[1]])
+  
+  return(runtime_sl)
+}
+
+avg_run_sl <- mean(output_sl[[1]])
+
+stopImplicitCluster()
+
+runtime <- rbind(avg_run_lm,avg_run_sl)
+```
+
+```{r, Q4 lm}
+set.seed(4747)
+# lm output
+cov_b0_lm<- c()
+cov_b1_lm<- c()
+
+store_b0_lm <- c()
+store_b1_lm <- c()
+
+mse_pred_lm <- c()
+
+runtime_lm <-c()
+
+bias_b0_lm <- c()
+bias_b1_lm <- c()
+
+lm_y <- c()
+lm_yhat <- c()
+
+n <- 100
+t <- qt(0.975, n-2)
+
+for(i in 1:100){
+  
+  beg_lm <- Sys.time()
+  
+  x <- rnorm(100)
+  y <- 1 - x + rnorm(100)
+  
+  lm_data <- lm(y~x)
+  
+  b0_lm <- as.numeric(lm_data$coefficients[1])
+  b1_lm <- as.numeric(lm_data$coefficients[2])
+  
+  store_b0_lm <- c(store_b0_lm, b0_lm)
+  store_b1_lm <- c(store_b1_lm, b1_lm)
+  
+  summary_lm <- summary(lm_data)
+  se_int_lm <- summary_lm$coef[3]
+  se_slope_lm <- summary_lm$coef[4]
+  
+  #bias
+  bias_b0_lm <- c(bias_b0_lm,b0_lm - 1)
+  bias_b1_lm <- c(bias_b1_lm,b1_lm + 1)
+  
+  #coverage
+  cov_b0_lm <- c(cov_b0_lm, between(1, b0_lm - t*se_int_lm, b0_lm + t*se_int_lm))
+  cov_b1_lm <- c(cov_b1_lm, between(-1, b1_lm - t*se_slope_lm, b1_lm + t*se_slope_lm))
+  
+                 
+  #mse
+  lm_y <- c(lm_y, y)
+  lm_yhat <- c(lm_yhat,lm_data$fitted.values)
+  
+
+  end_lm <- Sys.time()
+  runtime_lm <- c(runtime_lm, end_lm-beg_lm)
+  
+}
+
+mse_b0_lm <- (1/n)*sum((1 - store_b0_lm)^2)
+mse_b1_lm <- (1/n)*sum((-1 - store_b1_lm)^2)
+
+cov_b0_lm_prop <-length(cov_b0_lm[cov_b0_lm == TRUE])/100
+
+cov_b1_lm_prop <-length(cov_b1_lm[cov_b1_lm == TRUE])/100
+
+mse_pred_lm <- (1/10000)*sum((lm_y - lm_yhat)^2)
+
+mse_lm <- cbind(mse_b0_lm,mse_b1_lm)
+cov_lm <- cbind(cov_b0_lm_prop, cov_b1_lm_prop)
+bias_lm <- cbind(mean(bias_b0_lm), mean(bias_b1_lm))
+
+#hist coefficients
+
+```
+
+```{r, Q4 sl}
+set.seed(4747)
+
+# sl output
+cov_b0_sl<- c()
+cov_b1_sl<- c()
+
+store_b0_sl <- c()
+store_b1_sl <- c()
+
+mse_pred_sl <- c()
+
+runtime_sl <-c()
+
+bias_b0_sl <- c()
+bias_b1_sl <- c()
+
+sl_y <- c()
+sl_yhat <- c()
+
+n <- 100
+
+for(i in 1:100){
+  
+  beg_sl <- Sys.time()
+  
+  x <- rnorm(100)
+  y <- 1 - x + rnorm(100)
+  
+  sl_data <- SimpLin(y,x)
+  
+  b0_sl <- as.numeric(sl_data$coefficients[1])
+  b1_sl <- as.numeric(sl_data$coefficients[2])
+  
+  store_b0_sl <- c(store_b0_sl, b0_sl)
+  store_b1_sl <- c(store_b1_sl, b1_sl)
+  
+  #bias
+  bias_b0_sl <- c(bias_b0_sl,b0_sl - 1)
+  bias_b1_sl <- c(bias_b1_sl,b1_sl + 1)
+  
+  #coverage
+  cov_b0_sl <- c(cov_b0_sl, between(1, sl_data$CI[1], sl_data$CI[3]))
+  cov_b1_sl <- c(cov_b1_sl, between(-1, sl_data$CI[2], sl_data$CI[4]))
+  
+                 
+  #mse
+  sl_y <- c(sl_y, y)
+  sl_yhat <- c(sl_yhat, sl_data$predicted)
+  
+  
+  end_sl <- Sys.time()
+  runtime_sl <- c(runtime_sl, end_sl-beg_sl)
+  
+}
+
+mse_b0_sl <- (1/n)*sum((1 - store_b0_sl)^2)
+mse_b1_sl <- (1/n)*sum((-1 - store_b1_sl)^2)
+
+cov_b0_sl_prop <-length(cov_b0_sl[cov_b0_sl == TRUE])/100
+
+cov_b1_sl_prop <-length(cov_b1_sl[cov_b1_sl == TRUE])/100
+
+mse_pred_sl <- (1/10000)*sum((sl_y - sl_yhat)^2)
+
+mse_sl <- cbind(mse_b0_sl,mse_b1_sl)
+cov_sl <- cbind(cov_b0_sl_prop, cov_b1_sl_prop)
+bias_sl <- cbind(mean(bias_b0_sl), mean(bias_b1_sl))
+```
+
+```{r, Q4 summary table}
+mse_betas <- rbind(mse_lm, mse_sl)
+total_mse <- rbind(mse_pred_lm, mse_pred_sl)
+cov <- rbind(cov_lm, cov_sl)
+avg_bias <- rbind(bias_lm, bias_sl)
+
+sum_stats <- cbind(runtime, mse_betas, total_mse, cov, avg_bias)
+
+sum_stats <- as.data.frame(sum_stats)
+
+row.names(sum_stats)<- c("lm", "sl")
+
+names(sum_stats)<- c("runtime", "mse_beta0", "mse_b1", "mse_pred", "coverage_b0",  "coverage_b1", "avg_bias_b0", "avg_bias_b1")
+  
+sum_stats
+```
